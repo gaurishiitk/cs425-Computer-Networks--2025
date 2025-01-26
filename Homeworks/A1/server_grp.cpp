@@ -21,30 +21,30 @@ using namespace std;
 #define PORT 12345
 #define BUFFER_SIZE 1024
 
-std::unordered_map<int, std::string> clients; // Client socket -> username
-std::unordered_map<std::string, std::string> users; // Username -> password
-std::unordered_map<std::string, std::unordered_set<int>> groups; // Group -> client sockets
-std::mutex client_mutex, group_mutex;
+unordered_map<int, string> clients; // Client socket -> username
+unordered_map<string, string> users; // Username -> password
+unordered_map<string, unordered_set<int>> groups; // Group -> client sockets
+mutex client_mutex, group_mutex;
 bool server_running = true; // To handle graceful shutdown
 
 // Utility function to send a message to a specific client
-void send_message(int client_socket, const std::string &message) {
+void send_message(int client_socket, const string &message) {
     send(client_socket, message.c_str(), message.size(), 0);
 }
 
 // Load users from users.txt
-void load_users(const std::string &filename) {
-    std::ifstream file(filename);
+void load_users(const string &filename) {
+    ifstream file(filename);
     if (!file) {
-        std::cerr << "Error: Unable to open users.txt" << std::endl;
+        cerr << "Error: Unable to open users.txt" << endl;
         exit(1);
     }
 
-    std::string line;
-    while (std::getline(file, line)) {
-        std::istringstream iss(line);
-        std::string username, password;
-        if (std::getline(iss, username, ':') && std::getline(iss, password)) {
+    string line;
+    while (getline(file, line)) {
+        istringstream iss(line);
+        string username, password;
+        if (getline(iss, username, ':') && getline(iss, password)) {
             users[username] = password;
         }
     }
@@ -53,7 +53,7 @@ void load_users(const std::string &filename) {
 // Handle client connection
 void handle_client(int client_socket) {
     char buffer[BUFFER_SIZE];
-    std::string username;
+    string username;
 
     // Authentication
     send_message(client_socket, "Enter username: ");
@@ -64,26 +64,44 @@ void handle_client(int client_socket) {
     send_message(client_socket, "Enter password: ");
     memset(buffer, 0, BUFFER_SIZE);
     recv(client_socket, buffer, BUFFER_SIZE, 0);
-    std::string password = buffer;
+    string password = buffer;
 
     // Validate credentials
     if (users.find(username) == users.end() || users[username] != password) {
-        send_message(client_socket, "Authentication failed\n");
+        send_message(client_socket, "Authentication failed.\n");
         close(client_socket);
         return;
     }
 
     // Add client to the clients map
     {
-        std::lock_guard<std::mutex> lock(client_mutex);
+        lock_guard<mutex> lock(client_mutex);
         clients[client_socket] = username;
     }
-    send_message(client_socket, "Welcome to the chat server!\n");
+    send_message(client_socket, "\nWelcome to the chat server!\n");
+
+    // Notify the new user about the already active users
+    string active_users;
+    {
+        lock_guard<mutex> lock(client_mutex);
+        for (const auto &client : clients) {
+            if (client.first != client_socket) {
+                active_users += client.second + ", ";
+            }
+        }
+    }
+    if (!active_users.empty()) {
+        active_users.pop_back(); // Remove the last space
+        active_users.pop_back(); // Remove the last comma
+        send_message(client_socket, "Active users: " + active_users + "\n");
+    } else {
+        send_message(client_socket, "No other users are currently active.\n");
+    }
 
     // Notify others
-    std::string join_message = username + " has joined the chat.\n";
+    string join_message = username + " has joined the chat.\n"; 
     {
-        std::lock_guard<std::mutex> lock(client_mutex);
+        lock_guard<mutex> lock(client_mutex);
         for (const auto &[sock, _] : clients) {
             if (sock != client_socket) {
                 send_message(sock, join_message);
@@ -99,21 +117,21 @@ void handle_client(int client_socket) {
             break;
         }
 
-        std::string message(buffer);
+        string message(buffer);
 
         // Parse commands
-        if (message.starts_with("/broadcast ")) {
-            std::string broadcast_msg = username + ": " + message.substr(11) + "\n";
-            std::lock_guard<std::mutex> lock(client_mutex);
+        if (message.rfind("/broadcast ", 0) == 0) {
+            string broadcast_msg = username + ": " + message.substr(11) + "\n";
+            lock_guard<mutex> lock(client_mutex);
             for (const auto &[sock, _] : clients) {
                 send_message(sock, broadcast_msg);
             }
-        } else if (message.starts_with("/msg ")) {
+        } else if (message.rfind("/msg ", 0) == 0) {
             size_t space_pos = message.find(' ', 5);
-            if (space_pos != std::string::npos) {
-                std::string target_user = message.substr(5, space_pos - 5);
-                std::string private_msg = message.substr(space_pos + 1);
-                std::lock_guard<std::mutex> lock(client_mutex);
+            if (space_pos != string::npos) {
+                string target_user = message.substr(5, space_pos - 5);
+                string private_msg = message.substr(space_pos + 1);
+                lock_guard<mutex> lock(client_mutex);
                 bool user_found = false;
                 for (const auto &[sock, user] : clients) {
                     if (user == target_user) {
@@ -126,35 +144,53 @@ void handle_client(int client_socket) {
                     send_message(client_socket, "User not found.\n");
                 }
             }
-        } else if (message.starts_with("/create group ")) {
-            std::string group_name = message.substr(14);
+        } else if (message.rfind("/create_group ", 0) == 0) {//--let everyone know that a group has been created
+            string group_name = message.substr(14);
             {
-                std::lock_guard<std::mutex> lock(group_mutex);
+                lock_guard<mutex> lock(group_mutex);
                 if (groups.find(group_name) == groups.end()) {
                     groups[group_name] = {client_socket};
-                    send_message(client_socket, "Group " + group_name + " created.\n");
+                    //notify the user
+                    send_message(client_socket, "Group " + group_name + " has been created.\n");
+                    //notify others
+                    string group_created_message = username + " created the group " + group_name + ".\n";
+                    for (const auto &[sock, _] : clients) {
+                        if (sock != client_socket) {
+                            send_message(sock, group_created_message);
+                        }
+                    }
+                    //
                 } else {
                     send_message(client_socket, "Group already exists.\n");
                 }
             }
-        } else if (message.starts_with("/join group ")) {
-            std::string group_name = message.substr(12);
+        } else if (message.rfind("/join_group ", 0) == 0) {//--let everyone in the group know that a user has joined that group
+            string group_name = message.substr(12);
             {
-                std::lock_guard<std::mutex> lock(group_mutex);
+                lock_guard<mutex> lock(group_mutex);
                 if (groups.find(group_name) != groups.end()) {
                     groups[group_name].insert(client_socket);
+                    //notify the user
                     send_message(client_socket, "You joined the group " + group_name + ".\n");
+                    //notify others in the group
+                    string join_group_message = username + " joined the group " + group_name + ".\n";
+                    for (int sock : groups[group_name]) {
+                        if (sock != client_socket) {
+                            send_message(sock, join_group_message);
+                        }
+                    }
+                    //
                 } else {
                     send_message(client_socket, "Group not found.\n");
                 }
             }
-        } else if (message.starts_with("/group msg ")) {
+        } else if (message.rfind("/group_msg ", 0) == 0) {
             size_t space_pos = message.find(' ', 11);
-            if (space_pos != std::string::npos) {
-                std::string group_name = message.substr(11, space_pos - 11);
-                std::string group_msg = message.substr(space_pos + 1);
+            if (space_pos != string::npos) {
+                string group_name = message.substr(11, space_pos - 11);
+                string group_msg = message.substr(space_pos + 1);
                 {
-                    std::lock_guard<std::mutex> lock(group_mutex);
+                    lock_guard<mutex> lock(group_mutex);
                     if (groups.find(group_name) != groups.end()) {
                         for (int sock : groups[group_name]) {
                             send_message(sock, "[Group " + group_name + "] " + username + ": " + group_msg + "\n");
@@ -164,13 +200,22 @@ void handle_client(int client_socket) {
                     }
                 }
             }
-        } else if (message.starts_with("/leave group ")) {
-            std::string group_name = message.substr(13);
+        } else if (message.rfind("/leave_group ", 0) == 0) {//--let everyone in the group know that a user has left that group
+            string group_name = message.substr(13);
             {
-                std::lock_guard<std::mutex> lock(group_mutex);
+                lock_guard<mutex> lock(group_mutex);
                 if (groups.find(group_name) != groups.end()) {
                     groups[group_name].erase(client_socket);
+                    //notify the user
                     send_message(client_socket, "You left the group " + group_name + ".\n");
+                    //notify others in the group
+                    string leave_group_message = username + " left the group " + group_name + ".\n";
+                    for (int sock : groups[group_name]) {
+                        if (sock != client_socket) {
+                            send_message(sock, leave_group_message);
+                        }
+                    }
+                    //
                 } else {
                     send_message(client_socket, "Group not found.\n");
                 }
@@ -182,15 +227,15 @@ void handle_client(int client_socket) {
 
     // Disconnect client
     {
-        std::lock_guard<std::mutex> lock(client_mutex);
+        lock_guard<mutex> lock(client_mutex);
         clients.erase(client_socket);
     }
     close(client_socket);
 
     // Notify others
-    std::string leave_message = username + " has left the chat.\n";
+    string leave_message = username + " has left the chat.\n";
     {
-        std::lock_guard<std::mutex> lock(client_mutex);
+        lock_guard<mutex> lock(client_mutex);
         for (const auto &[sock, _] : clients) {
             send_message(sock, leave_message);
         }
@@ -200,7 +245,7 @@ void handle_client(int client_socket) {
 // Graceful shutdown handler
 void signal_handler(int signal) {
     server_running = false;
-    std::cout << "Shutting down the server..." << std::endl;
+    cout << "Shutting down the server..." << endl;
 }
 
 int main() {
@@ -209,7 +254,7 @@ int main() {
 
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0) {
-        std::cerr << "Error creating socket." << std::endl;
+        cerr << "Error creating socket." << endl;
         return 1;
     }
 
@@ -219,16 +264,16 @@ int main() {
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(server_socket, (sockaddr*)&server_address, sizeof(server_address)) < 0) {
-        std::cerr << "Error binding socket." << std::endl;
+        cerr << "Error binding socket." << endl;
         return 1;
     }
 
     if (listen(server_socket, 10) < 0) {
-        std::cerr << "Error listening on socket." << std::endl;
+        cerr << "Error listening on socket." << endl;
         return 1;
     }
 
-    std::cout << "Server is running on port " << PORT << "..." << std::endl;
+    cout << "Server is running on port " << PORT << "..." << endl;
 
     while (server_running) {
         sockaddr_in client_address;
@@ -236,10 +281,10 @@ int main() {
         int client_socket = accept(server_socket, (sockaddr*)&client_address, &client_len);
         if (client_socket < 0) {
             if (!server_running) break;
-            std::cerr << "Error accepting connection." << std::endl;
+            cerr << "Error accepting connection." << endl;
             continue;
         }
-        std::thread(handle_client, client_socket).detach();
+        thread(handle_client, client_socket).detach();
     }
 
     close(server_socket);

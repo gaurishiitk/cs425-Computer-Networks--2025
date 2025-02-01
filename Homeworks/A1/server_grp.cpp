@@ -20,6 +20,9 @@ using namespace std;
 
 #define PORT 12345
 #define BUFFER_SIZE 1024
+#define MAX_GROUPS 1000
+#define MAX_GROUP_SIZE 100
+#define MAX_CLIENTS 100
 
 unordered_map<int, string> clients; // Client socket -> username
 unordered_map<string, string> users; // Username -> password
@@ -29,7 +32,10 @@ bool server_running = true; // To handle graceful shutdown
 
 // Utility function to send a message to a specific client
 void send_message(int client_socket, const string &message) {
-    send(client_socket, message.c_str(), message.size(), 0);
+    //handle error
+    if(send(client_socket, message.c_str(), message.size(), 0) <= 0) {
+        cout << "Error sending message to client." << endl;
+    }
 }
 
 // Load users from users.txt
@@ -68,7 +74,7 @@ void handle_client(int client_socket) {
 
     // Validate credentials
     if (users.find(username) == users.end() || users[username] != password) {
-        send_message(client_socket, "Authentication failed.\n");
+        send_message(client_socket, "Authentication failed.");
         close(client_socket);
         return;
     }
@@ -78,7 +84,7 @@ void handle_client(int client_socket) {
         lock_guard<mutex> lock(client_mutex);
         clients[client_socket] = username;
     }
-    send_message(client_socket, "\nWelcome to the chat server!\n");
+    send_message(client_socket, "Welcome to the chat server!\n");
 
     // Notify the new user about the already active users
     string active_users;
@@ -93,13 +99,13 @@ void handle_client(int client_socket) {
     if (!active_users.empty()) {
         active_users.pop_back(); // Remove the last space
         active_users.pop_back(); // Remove the last comma
-        send_message(client_socket, "Active users: " + active_users + "\n");
+        send_message(client_socket, "Active users: " + active_users + "");
     } else {
-        send_message(client_socket, "No other users are currently active.\n");
+        send_message(client_socket, "No other users are currently active.");
     }
 
     // Notify others
-    string join_message = username + " has joined the chat.\n"; 
+    string join_message = username + " has joined the chat."; 
     {
         lock_guard<mutex> lock(client_mutex);
         for (const auto &[sock, _] : clients) {
@@ -121,67 +127,78 @@ void handle_client(int client_socket) {
 
         // Parse commands
         if (message.rfind("/broadcast ", 0) == 0) {
-            string broadcast_msg = username + ": " + message.substr(11) + "\n";
-            lock_guard<mutex> lock(client_mutex);
-            for (const auto &[sock, _] : clients) {
-                send_message(sock, broadcast_msg);
+            string broadcast_msg = message.substr(11);
+            if (!broadcast_msg.empty()) {
+                broadcast_msg = username + ": " + broadcast_msg;
+                lock_guard<mutex> lock(client_mutex);
+                for (const auto &[sock, _] : clients) {
+                    send_message(sock, broadcast_msg);
+                }
             }
         } else if (message.rfind("/msg ", 0) == 0) {
             size_t space_pos = message.find(' ', 5);
             if (space_pos != string::npos) {
                 string target_user = message.substr(5, space_pos - 5);
                 string private_msg = message.substr(space_pos + 1);
-                lock_guard<mutex> lock(client_mutex);
-                bool user_found = false;
-                for (const auto &[sock, user] : clients) {
-                    if (user == target_user) {
-                        send_message(sock, "[Private] " + username + ": " + private_msg + "\n");
-                        user_found = true;
-                        break;
+                if (!private_msg.empty()) {
+                    lock_guard<mutex> lock(client_mutex);
+                    bool user_found = false;
+                    for (const auto &[sock, user] : clients) {
+                        if (user == target_user) {
+                            send_message(sock, "[Private] " + username + ": " + private_msg);
+                            user_found = true;
+                            break;
+                        }
+                    }
+                    if (!user_found) {
+                        send_message(client_socket, "User not found.");
                     }
                 }
-                if (!user_found) {
-                    send_message(client_socket, "User not found.\n");
-                }
             }
-        } else if (message.rfind("/create_group ", 0) == 0) {//--let everyone know that a group has been created
+        } else if (message.rfind("/create_group ", 0) == 0) {
+
+            //Check Maximum Number of Groups
+            if (groups.size() >= MAX_GROUPS) {
+                send_message(client_socket, "Maximum number of groups reached.");
+                return;
+            }
+
             string group_name = message.substr(14);
-            {
+            if (!group_name.empty()) {
                 lock_guard<mutex> lock(group_mutex);
                 if (groups.find(group_name) == groups.end()) {
                     groups[group_name] = {client_socket};
-                    //notify the user
-                    send_message(client_socket, "Group " + group_name + " has been created.\n");
-                    //notify others
-                    string group_created_message = username + " created the group " + group_name + ".\n";
+                    send_message(client_socket, "Group " + group_name + " has been created.");
+                    string group_created_message = username + " created the group " + group_name + ".";
                     for (const auto &[sock, _] : clients) {
                         if (sock != client_socket) {
                             send_message(sock, group_created_message);
                         }
                     }
-                    //
                 } else {
-                    send_message(client_socket, "Group already exists.\n");
+                    send_message(client_socket, "Group already exists.");
                 }
             }
-        } else if (message.rfind("/join_group ", 0) == 0) {//--let everyone in the group know that a user has joined that group
+        } else if (message.rfind("/join_group ", 0) == 0) {
             string group_name = message.substr(12);
-            {
+            if (!group_name.empty()) {
                 lock_guard<mutex> lock(group_mutex);
                 if (groups.find(group_name) != groups.end()) {
+                    //Maximum Members in a Group
+                    if (groups[group_name].size() >= MAX_GROUP_SIZE) {
+                        send_message(client_socket, "Maximum number of members reached in the group.");
+                        return;
+                    }
                     groups[group_name].insert(client_socket);
-                    //notify the user
-                    send_message(client_socket, "You joined the group " + group_name + ".\n");
-                    //notify others in the group
-                    string join_group_message = username + " joined the group " + group_name + ".\n";
+                    send_message(client_socket, "You joined the group " + group_name + ".");
+                    string join_group_message = username + " joined the group " + group_name + ".";
                     for (int sock : groups[group_name]) {
                         if (sock != client_socket) {
                             send_message(sock, join_group_message);
                         }
                     }
-                    //
                 } else {
-                    send_message(client_socket, "Group not found.\n");
+                    send_message(client_socket, "Group not found.");
                 }
             }
         } else if (message.rfind("/group_msg ", 0) == 0) {
@@ -189,53 +206,40 @@ void handle_client(int client_socket) {
             if (space_pos != string::npos) {
                 string group_name = message.substr(11, space_pos - 11);
                 string group_msg = message.substr(space_pos + 1);
-                {
+                if (!group_msg.empty()) {
                     lock_guard<mutex> lock(group_mutex);
-                    //check if the user is in the requested group or not   
-                    //if they are in the group then send the message to all the users in the group
-                    //otherwise send a message to the user that they are not in the group or the group does not exist
                     if (groups.find(group_name) != groups.end() && groups[group_name].find(client_socket) != groups[group_name].end()) {
                         for (int sock : groups[group_name]) {
-                            send_message(sock, "[Group " + group_name + "] " + username + ": " + group_msg + "\n");
+                            send_message(sock, "[Group " + group_name + "] " + username + ": " + group_msg);
                         }
                     } else {
-                        send_message(client_socket, "Either Group not found Or you are not in the group.\n");
+                        send_message(client_socket, "Either Group not found Or you are not in the group.");
                     }
                 }
-                //     if (groups.find(group_name) != groups.end()) {
-                //         for (int sock : groups[group_name]) {
-                //             send_message(sock, "[Group " + group_name + "] " + username + ": " + group_msg + "\n");
-                //         }
-                //     } else {
-                //         send_message(client_socket, "Group not found.\n");
-                //     }
-                // }
             }
-        } else if (message.rfind("/leave_group ", 0) == 0) {//--let everyone in the group know that a user has left that group
+        } else if (message.rfind("/leave_group ", 0) == 0) {
             string group_name = message.substr(13);
-            {
+            if (!group_name.empty()) {
                 lock_guard<mutex> lock(group_mutex);
                 if (groups.find(group_name) != groups.end()) {
                     groups[group_name].erase(client_socket);
-                    //notify the user
-                    send_message(client_socket, "You left the group " + group_name + ".\n");
-                    //notify others in the group
-                    string leave_group_message = username + " left the group " + group_name + ".\n";
+                    send_message(client_socket, "You left the group " + group_name + ".");
+                    string leave_group_message = username + " left the group " + group_name + ".";
                     for (int sock : groups[group_name]) {
                         if (sock != client_socket) {
                             send_message(sock, leave_group_message);
                         }
                     }
-                    //
                 } else {
-                    send_message(client_socket, "Group not found.\n");
+                    send_message(client_socket, "Group not found.");
                 }
+            } else{
+                send_message(client_socket, "Invalid command.");
             }
         } else {
-            send_message(client_socket, "Invalid command.\n");
+            send_message(client_socket, "Invalid command.");
         }
     }
-
     // Disconnect client
     {
         lock_guard<mutex> lock(client_mutex);
@@ -244,7 +248,7 @@ void handle_client(int client_socket) {
     close(client_socket);
 
     // Notify others
-    string leave_message = username + " has left the chat.\n";
+    string leave_message = username + " has left the chat.";
     {
         lock_guard<mutex> lock(client_mutex);
         for (const auto &[sock, _] : clients) {
@@ -256,11 +260,12 @@ void handle_client(int client_socket) {
 // Graceful shutdown handler
 void signal_handler(int signal) {
     server_running = false;
+    signal = signal; // To suppress the unused variable warning
     cout << "Shutting down the server..." << endl;
 }
 
 int main() {
-    signal(SIGINT, signal_handler); // Handle Ctrl+C to shut down the server
+    //signal(SIGINT, signal_handler); // Handle Ctrl+C to shut down the server
     load_users("users.txt");
 
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -279,7 +284,7 @@ int main() {
     int yes = 1;
 
     if(setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
-        std::cout << "[ERROR] setsockopt error\n";
+        std::cout << "[ERROR] setsockopt error";
         exit(1);
     }
     /////
@@ -289,7 +294,8 @@ int main() {
         return 1;
     }
 
-    if (listen(server_socket, 10) < 0) {
+    //Maximum Number of Clients
+    if (listen(server_socket, MAX_CLIENTS) < 0) {
         cerr << "Error listening on socket." << endl;
         return 1;
     }

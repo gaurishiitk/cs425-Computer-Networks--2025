@@ -191,14 +191,25 @@ void handle_client(int client_socket) {
                 string group_msg = message.substr(space_pos + 1);
                 {
                     lock_guard<mutex> lock(group_mutex);
-                    if (groups.find(group_name) != groups.end()) {
+                    //check if the user is in the requested group or not   
+                    //if they are in the group then send the message to all the users in the group
+                    //otherwise send a message to the user that they are not in the group or the group does not exist
+                    if (groups.find(group_name) != groups.end() && groups[group_name].find(client_socket) != groups[group_name].end()) {
                         for (int sock : groups[group_name]) {
                             send_message(sock, "[Group " + group_name + "] " + username + ": " + group_msg + "\n");
                         }
                     } else {
-                        send_message(client_socket, "Group not found.\n");
+                        send_message(client_socket, "Either Group not found Or you are not in the group.\n");
                     }
                 }
+                //     if (groups.find(group_name) != groups.end()) {
+                //         for (int sock : groups[group_name]) {
+                //             send_message(sock, "[Group " + group_name + "] " + username + ": " + group_msg + "\n");
+                //         }
+                //     } else {
+                //         send_message(client_socket, "Group not found.\n");
+                //     }
+                // }
             }
         } else if (message.rfind("/leave_group ", 0) == 0) {//--let everyone in the group know that a user has left that group
             string group_name = message.substr(13);
@@ -262,6 +273,16 @@ int main() {
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(PORT);
     server_address.sin_addr.s_addr = INADDR_ANY;
+
+
+    /////
+    int yes = 1;
+
+    if(setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+        std::cout << "[ERROR] setsockopt error\n";
+        exit(1);
+    }
+    /////
 
     if (bind(server_socket, (sockaddr*)&server_address, sizeof(server_address)) < 0) {
         cerr << "Error binding socket." << endl;

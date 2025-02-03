@@ -100,7 +100,6 @@
 | Madhur Bansal | 30%            | Testing, debugging, and documentation |
 
 ## References
-- [Beej’s Guide to Network Programming](http://beej.us/guide/bgnet/)
 - C++ reference documentation for `std::thread`, `std::mutex`
 - Linux `man` pages for `socket()`, `bind()`, `listen()`, `accept()`, `recv()`, `send()`
 

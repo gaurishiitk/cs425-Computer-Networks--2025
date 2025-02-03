@@ -15,17 +15,6 @@
 #define PASSWORD "password123"
 #define EXIT "/exit"
 
-void handle_server_messages(int server_socket) {
-    char buffer[BUFFER_SIZE];
-    while (true) {
-        memset(buffer, 0, BUFFER_SIZE);
-        int bytes_received = recv(server_socket, buffer, BUFFER_SIZE, 0);
-        if (bytes_received <= 0) {
-            close(server_socket);
-            return;
-        }
-    }
-}
 
 std::pair<int, int> connectClient(int i, float &successful_connections) 
 {
@@ -71,6 +60,7 @@ std::pair<int, int> connectClient(int i, float &successful_connections)
 
     // Failed authenticaion
     if (std::string(buffer).find("Authentication failed") != std::string::npos) {
+        std::cout << "Client "<<i<<" Failed to Connect." << std::endl;
         close(client_socket);
         return socket_success;
     }

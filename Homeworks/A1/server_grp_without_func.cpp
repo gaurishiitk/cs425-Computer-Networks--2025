@@ -23,7 +23,7 @@ using namespace std;
 #define BUFFER_SIZE 1024
 #define MAX_GROUPS 1000
 #define MAX_GROUP_SIZE 100
-#define MAX_CLIENTS 10000
+#define MAX_CLIENTS 10000   
 
 std::atomic<int> active_connections = 0;
 
@@ -37,7 +37,8 @@ bool server_running = true; // To handle graceful shutdown
 void send_message(int client_socket, const string &message) {
     //handle error
     if(send(client_socket, message.c_str(), message.size(), 0) <= 0) {
-        // cout << "Error sending message to client." << endl;
+        cout << "Error sending message to client." << endl;
+        close(client_socket);
     }
 }
 
@@ -61,13 +62,6 @@ void load_users(const string &filename) {
 
 // Handle client connection
 void handle_client(int client_socket) {
-
-    if (active_connections >= MAX_CLIENTS) {
-        // std::cerr << "Max connections reached. Rejecting client.\n";
-        close(client_socket);
-        return;
-    }
-
     char buffer[BUFFER_SIZE];
     string username;
 
@@ -83,8 +77,11 @@ void handle_client(int client_socket) {
     string password = buffer;
 
     // Validate credentials
-    if (users.find(username) == users.end() || users[username] != password) {
+    if (users.find(username) == users.end() || users[username] != password || active_connections >= MAX_CLIENTS) {
         send_message(client_socket, "Authentication failed.");
+        if(active_connections >= MAX_CLIENTS) {
+            cout<<"Max connections reached. Rejecting client."<<endl;
+        }
         close(client_socket);
         return;
     }
@@ -310,7 +307,7 @@ int main() {
     }
 
     //Maximum Number of Clients
-    if (listen(server_socket, 1000) < 0) {
+    if (listen(server_socket, SOMAXCONN) < 0) {
         cerr << "Error listening on socket." << endl;
         return 1;
     }

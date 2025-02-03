@@ -22,7 +22,7 @@ using namespace std;
 #define BUFFER_SIZE 1024
 #define MAX_GROUPS 1000
 #define MAX_GROUP_SIZE 100
-#define MAX_CLIENTS 10000   
+#define MAX_CLIENTS 10
 
 std::atomic<int> active_connections = 0;
 
@@ -36,7 +36,7 @@ bool server_running = true; // To handle graceful shutdown
 void send_message(int client_socket, const string &message) {
     //handle error
     if(send(client_socket, message.c_str(), message.size(), 0) <= 0) {
-        cout << "Error sending message to client." << endl;
+        // cout << "Error sending message to client." << endl;
         close(client_socket);
     }
 }
@@ -298,7 +298,7 @@ int main() {
     //signal(SIGINT, signal_handler); // Handle Ctrl+C to shut down the server
     load_users("users.txt");
 
-    signal(SIGPIPE, SIG_IGN);
+    //signal(SIGPIPE, SIG_IGN);
 
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0) {
@@ -343,8 +343,8 @@ int main() {
             cerr << "Error accepting connection." << endl;
             continue;
         }
-            thread(handle_client, client_socket).detach();
-        }
+        thread(handle_client, client_socket).detach();
+    }
 
     close(server_socket);
     return 0;

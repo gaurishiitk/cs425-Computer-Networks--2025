@@ -134,9 +134,9 @@
 
 | Member  | Contribution (%) | Role |
 |---------|----------------|------|
-| Gaurish Bansal  | 40%            | Server design, authentication handling |
-| Lakshika    | 30%            | Message parsing, command execution |
-| Madhur Bansal | 30%            | Testing, debugging, and documentation |
+| Gaurish Bansal  | 33.33%            | Server design, authentication handling |
+|  Madhur Bansal   | 33.33%            | Message parsing, command execution |
+| Lakshika  | 33.33%             | Testing, debugging, and documentation |
 
 ## References
 - C++ reference documentation for `std::thread`, `std::mutex`

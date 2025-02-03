@@ -36,11 +36,49 @@
 
 ## Implementation Details
 
-### High-Level Overview of Important Functions
-- `send_message(int client_socket, const string &message)`: Sends a message to a client.
-- `load_users(const string &filename)`: Loads valid usernames and passwords from `users.txt`.
-- `handle_client(int client_socket)`: Handles a single client session (authentication, message handling).
-- `signal_handler(int signal)`: Handles graceful shutdown of the server.
+### High-Level Idea of Important Functions:
+
+1. **`handle_client(int client_socket)`**:
+    - Handles communication with an individual client.
+    - Authenticates the user by verifying their username and password.
+    - Receives and processes user commands (broadcast, private messages, group operations, etc.).
+    - Manages client disconnection and notifies other users when a client leaves.
+2. **`send_message(int client_socket, const string &message)`**:
+    - Sends a message to a specific client.
+    - Uses the `send()` system call to transmit the message over the network.
+    - Handles errors such as connection loss and ensures proper cleanup if sending fails.
+3. **`handle_broadcast(const string &message, const string &username, int client_socket)`**:
+    - Extracts the broadcast message from the command input.
+    - Iterates through all connected clients and sends the message.
+    - Uses a mutex to prevent race conditions while accessing the `clients` list.
+4. **`handle_private_message(const string &message, const string &username, int client_socket)`**:
+    - Extracts the recipient username and message content from the input.
+    - Searches for the recipient in the `clients` map.
+    - If the recipient is found, sends the message privately.
+    - Notifies the sender if the recipient does not exist.
+5. **`handle_create_group(const string &message, const string &username, int client_socket)`**:
+    - Checks if the maximum number of groups has been reached.
+    - Creates a new group and adds the requesting client as the first member.
+    - Notifies all users about the creation of the group.
+6. **`handle_join_group(const string &message, const string &username, int client_socket)`**:
+    - Extracts the group name from the message.
+    - Verifies that the group exists and has not exceeded the maximum member limit.
+    - Adds the client to the group's member list and notifies the group.
+7. **`handle_group_message(const string &message, const string &username, int client_socket)`**:
+    - Ensures that the sender is a member of the specified group.
+    - Broadcasts the message to all members of the group.
+    - If the sender is not a group member, sends an error response.
+8. **`handle_leave_group(const string &message, const string &username, int client_socket)`**:
+    - Removes the client from the specified group.
+    - Notifies remaining group members about the user's departure.
+    - If the group becomes empty, it remains available for new members.
+9. **`load_users(const string &filename)`**:
+    - Reads the `users.txt` file and loads the username-password pairs into memory.
+    - Parses each line, extracting usernames and corresponding passwords.
+    - If the file cannot be opened, terminates the server with an error message.
+10. **`signal_handler(int signal)`**:
+- Handles server shutdown by setting `server_running` to false.
+- Ensures that all client connections are properly closed before exiting.
 
 ### Code Flow
 1. **Server Setup:**

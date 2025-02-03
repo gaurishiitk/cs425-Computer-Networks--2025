@@ -4,12 +4,14 @@
 - TCP-based server listening on port 12345.
 - Supports multiple concurrent client connections.
 - User authentication using a `users.txt` file.
+- List of active users visible after user authentication
 - Private messaging between users (`/msg <username> <message>`).
 - Broadcasting messages to all users (`/broadcast <message>`).
 - Group creation (`/create_group <group_name>`), joining (`/join_group <group_name>`), leaving (`/leave_group <group_name>`), and messaging (`/group_msg <group_name> <message>`).
 - Thread-safe operations using `std::mutex`.
 - Proper handling of client disconnections.
-- Graceful shutdown support.
+- 
+
 
 ### Not Implemented Features:
 - No persistent storage for group membership (restarts reset groups).

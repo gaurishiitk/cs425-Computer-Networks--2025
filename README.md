@@ -77,8 +77,8 @@
     - Parses each line, extracting usernames and corresponding passwords.
     - If the file cannot be opened, terminates the server with an error message.
 10. **`signal_handler(int signal)`**:
-- Handles server shutdown by setting `server_running` to false.
-- Ensures that all client connections are properly closed before exiting.
+    - Handles server shutdown by setting `server_running` to false.
+    - Ensures that all client connections are properly closed before exiting.
 
 ### Code Flow
 1. **Server Setup:**

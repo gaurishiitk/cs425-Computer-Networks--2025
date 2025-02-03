@@ -73,7 +73,7 @@
 - Measured response times and identified minor performance bottlenecks.
 
 ## Server Restrictions
-- **Maximum Clients:** 2981 clients were connected (in Virtual Machine)
+- **Maximum Clients:** 2981 clients were connected
 - **Maximum Groups:** 1000.
 - **Maximum Group Size:** 100 members.
 - **Maximum Message Size:** 1024 bytes per message.

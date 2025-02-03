@@ -95,9 +95,9 @@
 
 | Member  | Contribution (%) | Role |
 |---------|----------------|------|
-| Alice   | 40%            | Server design, authentication handling |
-| Bob     | 30%            | Message parsing, command execution |
-| Charlie | 30%            | Testing, debugging, and documentation |
+| Gaurish Bansal  | 40%            | Server design, authentication handling |
+| Lakshika    | 30%            | Message parsing, command execution |
+| Madhur Bansal | 30%            | Testing, debugging, and documentation |
 
 ## References
 - [Beej’s Guide to Network Programming](http://beej.us/guide/bgnet/)

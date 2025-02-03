@@ -10,7 +10,6 @@
 - Group creation (`/create_group <group_name>`), joining (`/join_group <group_name>`), leaving (`/leave_group <group_name>`), and messaging (`/group_msg <group_name> <message>`).
 - Thread-safe operations using `std::mutex`.
 - Proper handling of client disconnections.
-- 
 
 
 ### Not Implemented Features:

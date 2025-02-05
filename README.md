@@ -129,22 +129,22 @@ Now, the client can connect to the server.
 ## Testing
 
 ### Correctness Testing
-- Connected multiple clients and ensured:
-  - Authentication worked correctly.
-  - Private messaging was properly delivered.
-  - Broadcast messages reached all clients.
-  - Group functionalities operated as expected.
+- *Authentication:* Validated user login with correct username/password.
+- *Private Messaging:* Verified private messages delivered to the intended recipient.
+- *Broadcast Messaging:* Ensured all clients received broadcast messages.
+- *Group Management:* Tested creating, joining, and messaging within groups. Verified group limits were respected.
 
 ### Stress Testing
-- Launched 100+ clients to test server performance and thread management.
-- Attempted concurrent group creation, joining, and messaging.
-- Measured response times and identified minor performance bottlenecks.
+- *Concurrency:* Tested with 100+ clients to evaluate server performance.
+- *Group Operations:* Stress-tested group creation, joining, and messaging.
+- *Response Time:* Measured performance under heavy load and identified bottlenecks.
 
 ## Server Restrictions
-- **Maximum Clients:** 2981 clients were connected
-- **Maximum Groups:** 1000.
-- **Maximum Group Size:** 100 members.
-- **Maximum Message Size:** 1024 bytes per message.
+
+- *Maximum Clients:* Successfully tested with up to 2981 simultaneous clients.
+- *Maximum Groups:* Limited to 1000 groups.
+- *Maximum Group Size:* Each group can have up to 100 members.
+- *Maximum Message Size:* Messages are limited to 1024 bytes.
 
 ## Challenges and Solutions
 

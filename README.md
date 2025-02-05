@@ -1,5 +1,35 @@
 ## Assignment Features
 
+### How to Run the C++ Chat Server and Client  
+1. **Compile the code**  
+   - Run:  
+     ```sh
+     make
+     ```
+2. **Start the server**  
+   - Run:  
+     ```sh
+     ./server
+     ```
+3. **Start the client**  
+   - If running on the **same PC**, use:  
+     ```sh
+     ./client
+     ```  
+   - If running on a **different PC**:  
+     1. Find the server's IP using:  
+        ```sh
+        ifconfig  # or use `ip a`
+        ```
+     2. Update the client source code with the server's IP.  
+     3. Recompile the client.  
+     4. Run:  
+        ```sh
+        ./client
+        ```
+
+Now, the client can connect to the server.
+
 ### Implemented Features:
 - TCP-based server listening on port 12345.
 - Supports multiple concurrent client connections.

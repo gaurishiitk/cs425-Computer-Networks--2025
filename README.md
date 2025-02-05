@@ -164,9 +164,9 @@ Now, the client can connect to the server.
 
 | Member  | Contribution (%) | Role |
 |---------|----------------|------|
-| Gaurish Bansal  | 33.33%            | Server design, authentication handling |
-|  Madhur Bansal   | 33.33%            | Message parsing, command execution |
-| Lakshika  | 33.33%             | Testing, debugging, and documentation |
+| Gaurish Bansal (210390)  | 33.33%            | Server design, authentication handling |
+|  Madhur Bansal (210572)  | 33.33%            | Message parsing, command execution |
+| Lakshika (210554) | 33.33%             | Testing, debugging, and documentation |
 
 ## References
 - C++ reference documentation for `std::thread`, `std::mutex`

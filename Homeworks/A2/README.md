@@ -1,108 +1,116 @@
-
 # DNS Resolution - Iterative and Recursive Lookup
 
 ## Overview
 
 This project implements a DNS resolution system that supports both iterative and recursive lookups. It is part of the CS425: Computer Networks course assignment, aimed at providing hands-on experience with DNS querying, network programming, and protocol understanding.
 
-## Features
+## Assignment Features
 
-- Iterative DNS Resolution
-- Recursive DNS Resolution
-- Error handling for timeouts, incorrect domain names, and unreachable servers
+### How to Run the DNS Resolver
 
-## Requirements
-
-- Python 3.x
-- dnspython library
-
-## Installation
-
-1. Clone the repository:
-   ```
-   git clone https://github.com/privacy-iitk/cs425-2025.git
-   ```
-
-2. Navigate to the assignment directory:
-   ```
-   cd cs425-2025/Homeworks/A2
-   ```
-
-3. Install the required library:
+1. **Install dependencies**
    ```
    pip install dnspython
    ```
 
-## Usage
+2. **Run the resolver**
+   - For iterative lookup:
+     ```
+     python3 dnsresolver.py iterative example.com
+     ```
+   - For recursive lookup:
+     ```
+     python3 dnsresolver.py recursive example.com
+     ```
 
-The script accepts command-line arguments for both iterative and recursive DNS lookups:
+### Implemented Features:
+- Iterative DNS resolution starting from root servers
+- Recursive DNS resolution using system's default resolver
+- Support for both A and CNAME record types
+- Error handling for timeouts, incorrect domain names, and unreachable servers
+- Debug output for each step of the resolution process
 
-### Iterative Lookup
-```
-python3 dnsresolver.py iterative example.com
-```
+### Not Implemented Features:
+- Support for other DNS record types (MX, TXT, etc.)
+- Caching of DNS responses
+- Custom DNS server implementation
 
-### Recursive Lookup
-```
-python3 dnsresolver.py recursive example.com
-```
+## Design Decisions
+
+### DNS Query Approach
+- Used `dnspython` library for constructing and parsing DNS messages
+- Implemented separate functions for iterative and recursive lookups
+
+### Error Handling
+- Implemented timeout mechanism for DNS queries
+- Graceful handling of "NXDOMAIN" and other DNS-specific errors
 
 ## Implementation Details
 
-### Iterative DNS Resolution
-- Starts resolution from root DNS servers
-- Queries through TLD and authoritative servers
-- Extracts and resolves nameservers at each stage
-- Prints the resolved IP address if found
+### High-Level Idea of Important Functions:
 
-### Recursive DNS Resolution
-- Uses the system's default DNS resolver
-- Fetches and displays the IP address of the given domain
-- Handles errors gracefully
+1. **`iterative_lookup(domain)`**:
+   - Starts with root DNS servers
+   - Iteratively queries nameservers until reaching authoritative server
+   - Returns resolved IP address
 
-## Example Output
+2. **`recursive_lookup(domain)`**:
+   - Uses system's default resolver for recursive lookup
+   - Returns resolved IP address
 
-### Iterative Lookup
-```
-[Iterative DNS Lookup] Resolving google.com
-[DEBUG] Querying ROOT server (198.41.0.4) - SUCCESS
-Extracted NS hostname: l.gtld-servers.net.
-...
-[DEBUG] Querying TLD server (192.41.162.30) - SUCCESS
-Extracted NS hostname: ns2.google.com.
-...
-[DEBUG] Querying AUTH server (216.239.34.10) - SUCCESS
-[SUCCESS] google.com -> 142.250.194.78
-Time taken: 0.597 seconds
-```
+3. **`query_dns(server, domain, record_type)`**:
+   - Sends DNS query to specified server
+   - Handles different response types (A, CNAME, NS)
 
-### Recursive Lookup
-```
-[Recursive DNS Lookup] Resolving google.com
-[SUCCESS] google.com -> ns4.google.com.
-[SUCCESS] google.com -> ns3.google.com.
-[SUCCESS] google.com -> ns2.google.com.
-[SUCCESS] google.com -> ns1.google.com.
-[SUCCESS] google.com -> 172.217.167.206
-Time taken: 0.014 seconds
-```
+4. **`extract_nameserver(response)`**:
+   - Extracts nameserver information from DNS response
 
-## File Structure
+5. **`resolve_nameserver(ns_hostname)`**:
+   - Resolves IP address of a nameserver hostname
 
-- `dnsresolver.py`: Main Python script containing the DNS resolution implementation
-- `README.md`: This file, containing project documentation
+### Code Flow
+1. **Parse command-line arguments**
+2. **Based on lookup type:**
+   - **Iterative:** Start from root, query through TLD and authoritative servers
+   - **Recursive:** Use system resolver
+3. **Print results and execution time**
 
-## Troubleshooting
+## Testing
 
-- If you encounter "Name or service not known" errors, check your internet connection and DNS settings
-- For "No answer" responses, the domain might not have an A record or could be invalid
+### Correctness Testing
+- Tested with various domain names (existing and non-existing)
+- Verified correct resolution of A and CNAME records
+- Checked handling of invalid inputs and network errors
 
-## Contributors
+### Performance Testing
+- Compared execution time of iterative vs recursive lookups
+- Tested with domains requiring multiple levels of resolution
 
-This project is completed as part of the CS425: Computer Networks course at IIT Kanpur.
+## Challenges and Solutions
 
-This markdown content provides a comprehensive README for your DNS Resolution project, including an overview, features, installation instructions, usage examples, implementation details, example outputs, file structure, troubleshooting tips, and submission guidelines. You can copy and paste this content directly into your README.md file.
+### Handling CNAME Records
+- **Problem:** Some domains resolve to CNAME before A record
+- **Solution:** Implemented recursive CNAME resolution
 
-Citations:
-[1] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/51750180/96ce1578-4a7a-4bd7-9706-af22ee994286/A2_528c41fe-3811-45cd-b4ea-229a72ae79ba.pdf
-[2] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/51750180/662e8595-84ab-46ba-a103-5573d84fc442/dnsresolver_mine.py
+### Timeout Handling
+- **Problem:** Some DNS servers might not respond
+- **Solution:** Implemented query timeout and fallback to other servers
+
+## Contribution of Team Members
+
+| Member | Contribution (%) | Role |
+|--------|------------------|------|
+| [Name] ([Roll No.]) | 33.33% | [Specific contributions] |
+| [Name] ([Roll No.]) | 33.33% | [Specific contributions] |
+| [Name] ([Roll No.]) | 33.33% | [Specific contributions] |
+
+## References
+- DNS protocol specifications (RFC 1034, 1035)
+- `dnspython` library documentation
+- Course materials on DNS resolution
+
+## Declaration
+We hereby declare that we did not indulge in any plagiarism while completing this assignment.
+
+## Feedback
+[Add any feedback about the assignment here]

@@ -24,6 +24,17 @@ def send_dns_query(server, domain):
         query = dns.message.make_query(domain, dns.rdatatype.A)  # Construct the DNS query
         # TODO: Send the query using UDP 
         # Note that above TODO can be just a return statement with the UDP query!
+
+        # -> Sending a query using udp_with_fallback()
+        # -> Only using UDP can result in response getting truncated
+        # as dns supports UDP messages of length 512 Bytes only
+        # -> If that happens, then this function makes a tcp request
+        # and retrives the full response
+        response = dns.query.udp_with_fallback(q = query, where = server, timeout = TIMEOUT)
+        
+        # -> The response received is a tuple (message, bool)
+        return response[0]
+
     except Exception:
         return None  # If an error occurs (timeout, unreachable server, etc.), return None
 
@@ -47,7 +58,16 @@ def extract_next_nameservers(response):
     # TODO: Resolve the extracted NS hostnames to IP addresses
     # To TODO, you would have to write a similar loop as above
 
-    
+    # ns_ips = ['0'] * len(ns_names)
+
+    for rrset in response.additional:
+        if rrset.rdtype == dns.rdatatype.A:
+            rdata_text = rrset.to_text().split()
+            ns_name = rdata_text[0]
+            ns_ip = rdata_text[4]
+            ns_ips.append(ns_ip)
+            print(f'Resolved {ns_name} to {ns_ip}')
+
     return ns_ips  # Return list of resolved nameserver IPs
 
 def iterative_dns_lookup(domain):
@@ -76,6 +96,10 @@ def iterative_dns_lookup(domain):
             # If no answer, extract the next set of nameservers
             next_ns_list = extract_next_nameservers(response)
             # TODO: Move to the next resolution stage, i.e., it is either TLD, ROOT, or AUTH
+            if stage == "ROOT":
+                stage = "TLD"
+            elif stage == "TLD":
+                stage = "AUTH"
         else:
             print(f"[ERROR] Query failed for {stage} {ns_ip}")
             return  # Stop resolution if a query fails
@@ -92,6 +116,7 @@ def recursive_dns_lookup(domain):
     try:
         # TODO: Perform recursive resolution using the system's DNS resolver
         # Notice that the next line is looping through, therefore you should have something like answer = ??
+        answer = dns.resolver.resolve(domain, "NS", lifetime = TIMEOUT)
         for rdata in answer:
             print(f"[SUCCESS] {domain} -> {rdata}")
 

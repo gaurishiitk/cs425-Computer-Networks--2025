@@ -34,8 +34,6 @@ This project implements a DNS resolution system that supports both iterative and
 - Support for other DNS record types (MX, TXT, etc.)
 - Caching of DNS responses
 
-## Design Decisions
-
 ### DNS Query Approach
 - Used `dnspython` library for constructing and parsing DNS messages
 - Implemented separate functions for iterative and recursive lookups

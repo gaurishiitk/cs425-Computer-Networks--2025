@@ -26,24 +26,19 @@ This project implements a DNS resolution system that supports both iterative and
 ### Implemented Features:
 - Iterative DNS resolution starting from root servers
 - Recursive DNS resolution using system's default resolver
-- Support for both A and CNAME record types
+- Support for A record types
 - Error handling for timeouts, incorrect domain names, and unreachable servers
 - Debug output for each step of the resolution process
 
 ### Not Implemented Features:
 - Support for other DNS record types (MX, TXT, etc.)
 - Caching of DNS responses
-- Custom DNS server implementation
 
 ## Design Decisions
 
 ### DNS Query Approach
 - Used `dnspython` library for constructing and parsing DNS messages
 - Implemented separate functions for iterative and recursive lookups
-
-### Error Handling
-- Implemented timeout mechanism for DNS queries
-- Graceful handling of "NXDOMAIN" and other DNS-specific errors
 
 ## Implementation Details
 
@@ -60,8 +55,7 @@ This project implements a DNS resolution system that supports both iterative and
 
 3. **`query_dns(server, domain, record_type)`**:
    - Sends DNS query to specified server
-   - Handles different response types (A, CNAME, NS)
-
+   
 4. **`extract_nameserver(response)`**:
    - Extracts nameserver information from DNS response
 
@@ -75,34 +69,13 @@ This project implements a DNS resolution system that supports both iterative and
    - **Recursive:** Use system resolver
 3. **Print results and execution time**
 
-## Testing
-
-### Correctness Testing
-- Tested with various domain names (existing and non-existing)
-- Verified correct resolution of A and CNAME records
-- Checked handling of invalid inputs and network errors
-
-### Performance Testing
-- Compared execution time of iterative vs recursive lookups
-- Tested with domains requiring multiple levels of resolution
-
-## Challenges and Solutions
-
-### Handling CNAME Records
-- **Problem:** Some domains resolve to CNAME before A record
-- **Solution:** Implemented recursive CNAME resolution
-
-### Timeout Handling
-- **Problem:** Some DNS servers might not respond
-- **Solution:** Implemented query timeout and fallback to other servers
-
 ## Contribution of Team Members
 
-| Member | Contribution (%) | Role |
-|--------|------------------|------|
-| [Name] ([Roll No.]) | 33.33% | [Specific contributions] |
-| [Name] ([Roll No.]) | 33.33% | [Specific contributions] |
-| [Name] ([Roll No.]) | 33.33% | [Specific contributions] |
+| Member |
+|--------|
+| [Madhur Bansal] ([210572]) |
+| [Lakshika] ([210554]) |
+| [Gaurish Bansal] ([210390]) |
 
 ## References
 - DNS protocol specifications (RFC 1034, 1035)

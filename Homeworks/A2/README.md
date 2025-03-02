@@ -71,9 +71,9 @@ This project implements a DNS resolution system that supports both iterative and
 
 | Member |
 |--------|
-| [Madhur Bansal] ([210572]) |
-| [Lakshika] ([210554]) |
-| [Gaurish Bansal] ([210390]) |
+| Madhur Bansal (210572) |
+| Lakshika (210554) |
+| Gaurish Bansal (210390) |
 
 ## References
 - DNS protocol specifications (RFC 1034, 1035)
